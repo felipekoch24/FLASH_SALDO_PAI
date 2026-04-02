@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meu Saldo Flash</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background: #f4f7f6; padding: 15px; color: #1a1a1a; margin: 0; padding-bottom: 60px; }
+        
+        /* Aviso de Depósito - Corrigido */
+        .header-aviso { background: #eee; padding: 20px; border-radius: 20px; margin: 10px; border: 2px solid #ddd; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .botoes-confirmacao { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-confirmar { flex: 1; border: none; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 0.85rem; }
+        .sim { background: #0066cc; color: white; }
+        .nao { background: #333; color: white; }
+        
+        /* Card Principal */
+        .card-saldo { background: white; padding: 25px; border-radius: 25px; margin: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.04); text-align: center; border-bottom: 5px solid #0066cc; border: 1px solid #eee; }
+        .valor-principal { font-size: 3.5rem; font-weight: 800; color: #0066cc; margin: 10px 0; letter-spacing: -1.5px; }
+        .saldo-label { color:#888; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; }
+        
+        /* Resumo de Porcentagem */
+        .resumo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px; }
+        .resumo-box { background: white; padding: 15px; border-radius: 18px; border: 1px solid #eee; border-left: 4px solid #0066cc; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .resumo-nome { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 800; display: block; margin-bottom: 4px; }
+        .resumo-valor { font-size: 1rem; font-weight: 800; color: #333; display: block; }
+        .resumo-perc { font-size: 0.7rem; color: #0066cc; font-weight: 800; margin-top: 4px; display: block; }
+
+        /* Entrada de Dados */
+        .container-entrada { background: white; padding: 20px; border-radius: 25px; margin: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.04); border: 1px solid #eee; }
+        input#inputValor { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #eee; font-size: 2.2rem; font-weight: 800; text-align: center; margin-bottom: 15px; background: #fafafa; color: #000; outline: none; }
+        
+        .grid-locais { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .btn-local { background: #f8f9fa; border: 2px solid #eee; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; color: #444; font-size: 0.85rem; }
+        .btn-local.selecionado { background: #0066cc; color: white; border-color: #0066cc; }
+
+        .btn-registrar { width: 100%; padding: 20px; border-radius: 18px; border: none; background: #333; color: white; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; }
+        
+        /* Histórico */
+        .item-extrato { background: white; padding: 18px; border-radius: 18px; margin: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
+        .btn-acao { background: #f8f9fa; border: 1px solid #eee; padding: 8px; border-radius: 10px; cursor: pointer; width: 38px; height: 38px; }
+
+        .btn-reset { width: calc(100% - 20px); margin: 20px 10px; padding: 12px; background: none; border: 1px dashed #bbb; color: #888; border-radius: 12px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="blocoAviso" class="header-aviso">
+        <strong style="color: #333; font-size: 1.1rem;">O benefício caiu?</strong><br>
+        <span style="display:block; margin-top:5px; color: #666;">Felipe já confirmou o depósito?</span>
+        <div class="botoes-confirmacao">
+            <button class="btn-confirmar sim" onclick="confirmarDeposito()">SIM! 😍</button>
+            <button class="btn-confirmar nao" onclick="fecharAviso()">AINDA NÃO</button>
+        </div>
+    </div>
+
+    <div class="card-saldo">
+        <span class="saldo-label">Saldo Atual no Flash</span>
+        <div id="displaySaldo" class="valor-principal">R$ 7,66</div>
+        <button id="btnDesfazer" style="display:none; background:#f1f1f1; border:1px dashed #bbb; padding:8px; border-radius:10px; width:100%; margin-top:10px; font-weight:600; color:#666;" onclick="desfazerDeposito()">⚠️ Desfazer depósito de R$ 300</button>
+    </div>
+
+    <div id="statsContainer" class="resumo-grid"></div>
+
+    <div class="container-entrada">
+        <input type="text" id="inputValor" placeholder="R$ 0,00" oninput="mascaraMoeda(this)" inputmode="numeric">
+        <div class="grid-locais">
+            <button class="btn-local" onclick="selectLocal(this, 'Mercado Casarão')">Mercado Casarão</button>
+            <button class="btn-local" onclick="selectLocal(this, 'Mercado Cauã')">Mercado Cauã</button>
+            <button class="btn-local" onclick="selectLocal(this, 'Posto Gasolina')">Posto Gasolina</button>
+            <button class="btn-local" onclick="selectLocal(this, 'Outro Local')">Outro Local</button>
+        </div>
+        <button class="btn-registrar" onclick="salvarGasto()">Registrar Compra</button>
+    </div>
+
+    <div id="extrato"></div>
+
+    <button class="btn-reset" onclick="resetMensal()">🔄 Resetar para novo mês (R$ 7,66)</button>
+
+    <script>
+        let saldoBase = 7.66;
+        let localAtivo = "";
+        let compras = [];
+        let depositoConfirmado = false;
+
+        function mascaraMoeda(i) {
+            let v = i.value.replace(/\D/g,'');
+            v = (v/100).toFixed(2) + '';
+            v = v.replace(".", ",");
+            v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
+            v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
+            i.value = "R$ " + v;
+        }
+
+        function converterParaFloat(valorStr) {
+            if(!valorStr) return 0;
+            return parseFloat(valorStr.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
+        }
+
+        function confirmarDeposito() {
+            if(!depositoConfirmado) {
+                saldoBase += 300;
+                depositoConfirmado = true;
+                document.getElementById('blocoAviso').style.display = 'none';
+                document.getElementById('btnDesfazer').style.display = 'block';
+                atualizarTudo();
+            }
+        }
+
+        function desfazerDeposito() {
+            saldoBase -= 300;
+            depositoConfirmado = false;
+            document.getElementById('blocoAviso').style.display = 'block';
+            document.getElementById('btnDesfazer').style.display = 'none';
+            atualizarTudo();
+        }
+
+        function fecharAviso() { document.getElementById('blocoAviso').style.display = 'none'; }
+
+        function selectLocal(el, nome) {
+            document.querySelectorAll('.btn-local').forEach(b => b.classList.remove('selecionado'));
+            if(el) el.classList.add('selecionado');
+            localAtivo = nome;
+        }
+
+        function salvarGasto() {
+            const val = converterParaFloat(document.getElementById('inputValor').value);
+            if (val <= 0 || !localAtivo) return;
+            compras.push({ id: Date.now(), local: localAtivo, valor: val, hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) });
+            document.getElementById('inputValor').value = '';
+            selectLocal(null, "");
+            atualizarTudo();
+        }
+
+        function excluirGasto(id) {
+            if(confirm("Apagar do histórico?")) {
+                compras = compras.filter(c => c.id !== id);
+                atualizarTudo();
+            }
+        }
+
+        function editarGasto(id) {
+            const c = compras.find(item => item.id === id);
+            if(c) {
+                document.getElementById('inputValor').value = c.valor.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+                document.querySelectorAll('.btn-local').forEach(btn => {
+                    if(btn.innerText === c.local) selectLocal(btn, c.local);
+                });
+                compras = compras.filter(item => item.id !== id);
+                atualizarTudo();
+                window.scrollTo(0,0);
+            }
+        }
+
+        function resetMensal() {
+            if(confirm("Isso apagará todos os gastos e voltará o saldo para R$ 7,66. Continuar?")) {
+                saldoBase = 7.66;
+                compras = [];
+                depositoConfirmado = false;
+                document.getElementById('blocoAviso').style.display = 'block';
+                document.getElementById('btnDesfazer').style.display = 'none';
+                atualizarTudo();
+            }
+        }
+
+        function atualizarTudo() {
+            const totalGasto = compras.reduce((acc, c) => acc + c.valor, 0);
+            const saldoFinal = saldoBase - totalGasto;
+            document.getElementById('displaySaldo').innerText = saldoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            const resumo = {};
+            compras.forEach(c => resumo[c.local] = (resumo[c.local] || 0) + c.valor);
+            const stats = document.getElementById('statsContainer');
+            stats.innerHTML = "";
+            for (let local in resumo) {
+                let perc = totalGasto > 0 ? ((resumo[local] / totalGasto) * 100).toFixed(0) : 0;
+                stats.innerHTML += `<div class="resumo-box">
+                    <span class="resumo-nome">${local}</span>
+                    <span class="resumo-valor">${resumo[local].toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>
+                    <span class="resumo-perc">${perc}% do total gasto</span>
+                </div>`;
+            }
+
+            const container = document.getElementById('extrato');
+            container.innerHTML = compras.length > 0 ? '<span style="margin:15px; display:block; font-weight:800; color:#888; font-size:0.7rem; text-transform:uppercase;">Histórico:</span>' : '';
+            compras.slice().reverse().forEach(c => {
+                container.innerHTML += `<div class="item-extrato">
+                    <div><div style="font-weight:800;">${c.local}</div><div style="font-size:0.7rem; color:#888;">${c.hora}</div></div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <b style="color:#333;">-${c.valor.toLocaleString('pt-BR', {style:'currency', currency:'BRL'})}</b>
+                        <button class="btn-acao" style="color:#0066cc" onclick="editarGasto(${c.id})">✏️</button>
+                        <button class="btn-acao" style="color:#e74c3c" onclick="excluirGasto(${c.id})">🗑️</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        atualizarTudo();
+    </script>
+</body>
+</html>
