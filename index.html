@@ -9,28 +9,24 @@
         
         body { font-family: 'Inter', sans-serif; background: #f4f7f6; padding: 15px; color: #1a1a1a; margin: 0; padding-bottom: 60px; }
         
-        /* Aviso de Depósito - Corrigido */
         .header-aviso { background: #eee; padding: 20px; border-radius: 20px; margin: 10px; border: 2px solid #ddd; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .botoes-confirmacao { display: flex; gap: 10px; margin-top: 15px; }
         .btn-confirmar { flex: 1; border: none; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 0.85rem; }
         .sim { background: #0066cc; color: white; }
         .nao { background: #333; color: white; }
         
-        /* Card Principal */
         .card-saldo { background: white; padding: 25px; border-radius: 25px; margin: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.04); text-align: center; border-bottom: 5px solid #0066cc; border: 1px solid #eee; }
         .valor-principal { font-size: 3.5rem; font-weight: 800; color: #0066cc; margin: 10px 0; letter-spacing: -1.5px; }
         .saldo-label { color:#888; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; }
         
-        /* Resumo de Porcentagem */
         .resumo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px; }
         .resumo-box { background: white; padding: 15px; border-radius: 18px; border: 1px solid #eee; border-left: 4px solid #0066cc; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .resumo-nome { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 800; display: block; margin-bottom: 4px; }
         .resumo-valor { font-size: 1rem; font-weight: 800; color: #333; display: block; }
         .resumo-perc { font-size: 0.7rem; color: #0066cc; font-weight: 800; margin-top: 4px; display: block; }
 
-        /* Entrada de Dados */
         .container-entrada { background: white; padding: 20px; border-radius: 25px; margin: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.04); border: 1px solid #eee; }
-        input#inputValor { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #eee; font-size: 2.2rem; font-weight: 800; text-align: center; margin-bottom: 15px; background: #fafafa; color: #000; outline: none; }
+        input#inputValor { width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #eee; font-size: 2.2rem; font-weight: 800; text-align: center; margin-bottom: 15px; background: #fafafa; color: #000; outline: none; box-sizing: border-box; }
         
         .grid-locais { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .btn-local { background: #f8f9fa; border: 2px solid #eee; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; color: #444; font-size: 0.85rem; }
@@ -38,7 +34,6 @@
 
         .btn-registrar { width: 100%; padding: 20px; border-radius: 18px; border: none; background: #333; color: white; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; }
         
-        /* Histórico */
         .item-extrato { background: white; padding: 18px; border-radius: 18px; margin: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
         .btn-acao { background: #f8f9fa; border: 1px solid #eee; padding: 8px; border-radius: 10px; cursor: pointer; width: 38px; height: 38px; }
 
@@ -58,8 +53,8 @@
 
     <div class="card-saldo">
         <span class="saldo-label">Saldo Atual no Flash</span>
-        <div id="displaySaldo" class="valor-principal">R$ 7,66</div>
-        <button id="btnDesfazer" style="display:none; background:#f1f1f1; border:1px dashed #bbb; padding:8px; border-radius:10px; width:100%; margin-top:10px; font-weight:600; color:#666;" onclick="desfazerDeposito()">⚠️ Desfazer depósito de R$ 300</button>
+        <div id="displaySaldo" class="valor-principal">R$ 0,00</div>
+        <button id="btnDesfazer" style="display:none; background:#fff0f0; border:1px dashed #e74c3c; padding:10px; border-radius:10px; width:100%; margin-top:10px; font-weight:600; color:#e74c3c;" onclick="desfazerDeposito()">⚠️ Errei! Desfazer depósito de R$ 300</button>
     </div>
 
     <div id="statsContainer" class="resumo-grid"></div>
@@ -80,10 +75,17 @@
     <button class="btn-reset" onclick="resetMensal()">🔄 Resetar para novo mês (R$ 7,66)</button>
 
     <script>
-        let saldoBase = 7.66;
+        // CARREGAMENTO DOS DADOS SALVOS
+        let saldoBase = parseFloat(localStorage.getItem('saldoBase')) || 7.66;
+        let depositoConfirmado = localStorage.getItem('depositoConfirmado') === 'true';
+        let compras = JSON.parse(localStorage.getItem('compras')) || [];
         let localAtivo = "";
-        let compras = [];
-        let depositoConfirmado = false;
+
+        function gravarNoStorage() {
+            localStorage.setItem('saldoBase', saldoBase);
+            localStorage.setItem('depositoConfirmado', depositoConfirmado);
+            localStorage.setItem('compras', JSON.stringify(compras));
+        }
 
         function mascaraMoeda(i) {
             let v = i.value.replace(/\D/g,'');
@@ -101,23 +103,25 @@
 
         function confirmarDeposito() {
             if(!depositoConfirmado) {
-                saldoBase += 300;
-                depositoConfirmado = true;
-                document.getElementById('blocoAviso').style.display = 'none';
-                document.getElementById('btnDesfazer').style.display = 'block';
-                atualizarTudo();
+                if(confirm("Confirmar a entrada de R$ 300,00?")) {
+                    saldoBase += 300;
+                    depositoConfirmado = true;
+                    atualizarTudo();
+                }
             }
         }
 
         function desfazerDeposito() {
-            saldoBase -= 300;
-            depositoConfirmado = false;
-            document.getElementById('blocoAviso').style.display = 'block';
-            document.getElementById('btnDesfazer').style.display = 'none';
-            atualizarTudo();
+            if(confirm("Deseja remover os R$ 300,00 do saldo?")) {
+                saldoBase -= 300;
+                depositoConfirmado = false;
+                atualizarTudo();
+            }
         }
 
-        function fecharAviso() { document.getElementById('blocoAviso').style.display = 'none'; }
+        function fecharAviso() { 
+            document.getElementById('blocoAviso').style.display = 'none'; 
+        }
 
         function selectLocal(el, nome) {
             document.querySelectorAll('.btn-local').forEach(b => b.classList.remove('selecionado'));
@@ -127,8 +131,16 @@
 
         function salvarGasto() {
             const val = converterParaFloat(document.getElementById('inputValor').value);
-            if (val <= 0 || !localAtivo) return;
-            compras.push({ id: Date.now(), local: localAtivo, valor: val, hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) });
+            if (val <= 0 || !localAtivo) {
+                alert("Coloque o valor e selecione o local!");
+                return;
+            }
+            compras.push({ 
+                id: Date.now(), 
+                local: localAtivo, 
+                valor: val, 
+                hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) 
+            });
             document.getElementById('inputValor').value = '';
             selectLocal(null, "");
             atualizarTudo();
@@ -159,8 +171,6 @@
                 saldoBase = 7.66;
                 compras = [];
                 depositoConfirmado = false;
-                document.getElementById('blocoAviso').style.display = 'block';
-                document.getElementById('btnDesfazer').style.display = 'none';
                 atualizarTudo();
             }
         }
@@ -170,6 +180,19 @@
             const saldoFinal = saldoBase - totalGasto;
             document.getElementById('displaySaldo').innerText = saldoFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             
+            // Controle visual do Depósito/Desfazer
+            const btnDesfazer = document.getElementById('btnDesfazer');
+            const blocoAviso = document.getElementById('blocoAviso');
+            
+            if (depositoConfirmado) {
+                btnDesfazer.style.display = 'block';
+                blocoAviso.style.display = 'none';
+            } else {
+                btnDesfazer.style.display = 'none';
+                blocoAviso.style.display = 'block';
+            }
+
+            // Estatísticas
             const resumo = {};
             compras.forEach(c => resumo[c.local] = (resumo[c.local] || 0) + c.valor);
             const stats = document.getElementById('statsContainer');
@@ -183,6 +206,7 @@
                 </div>`;
             }
 
+            // Extrato
             const container = document.getElementById('extrato');
             container.innerHTML = compras.length > 0 ? '<span style="margin:15px; display:block; font-weight:800; color:#888; font-size:0.7rem; text-transform:uppercase;">Histórico:</span>' : '';
             compras.slice().reverse().forEach(c => {
@@ -195,8 +219,12 @@
                     </div>
                 </div>`;
             });
+
+            // SALVA TUDO NO CELULAR
+            gravarNoStorage();
         }
 
+        // Inicia o app já carregando os dados
         atualizarTudo();
     </script>
 </body>
